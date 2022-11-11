@@ -1,0 +1,205 @@
+=========================================================================================
+TD3 REQUETES
+=========================================================================================
+
+# Question 1
+SELECT d.NOMDEMANDEUR, d.PRENOMDEMANDEUR, COUNT(vm.nomvm)
+FROM DEMANDEUR d 
+    LEFT JOIN VM vm ON vm.IDDEMANDEUR = d.IDDEMANDEUR
+GROUP BY 1,2
+ORDER BY 1
+
+# Question 2
+
+SELECT d.NOMDEMANDEUR, d.PRENOMDEMANDEUR, COUNT(vm.nomvm)
+FROM DEMANDEUR d 
+    JOIN VM vm ON vm.IDDEMANDEUR = d.IDDEMANDEUR
+GROUP BY d.NOMDEMANDEUR, d.PRENOMDEMANDEUR
+HAVING COUNT(vm.nomvm) >= ALL   (
+                                    SELECT COUNT(vm.nomvm)
+                                    FROM DEMANDEUR d 
+                                    JOIN VM vm ON vm.IDDEMANDEUR = d.IDDEMANDEUR
+                                    GROUP BY d.IDDEMANDEUR
+                                )
+								
+# Question 3
+
+# NOT IN 
+SELECT d.NOMDEMANDEUR, d.PRENOMDEMANDEUR
+FROM DEMANDEUR d 
+WHERE d.IDDEMANDEUR NOT IN  (
+                                SELECT vm.IDDEMANDEUR
+                                FROM VM vm
+                            )
+ORDER BY 1
+
+# COUNT
+SELECT d.NOMDEMANDEUR, d.PRENOMDEMANDEUR
+FROM DEMANDEUR d 
+    LEFT JOIN VM vm ON vm.IDDEMANDEUR = d.IDDEMANDEUR
+GROUP BY d.NOMDEMANDEUR, d.PRENOMDEMANDEUR
+HAVING COUNT(vm.nomvm) = 0
+
+# Question 4
+
+DROP VIEW IF EXISTS v_derversionvm; 
+
+CREATE VIEW v_derversionvm AS
+    SELECT vm.idvm AS "idvm", vm.nomvm AS "nomvm", vm.description AS "description", max(v.dateversion) AS "dateversion"
+    FROM VM vm
+        JOIN VERSIONVM v ON vm.idvm = v.idvm
+    GROUP BY  vm.idvm, vm.nomvm, vm.description
+    ORDER BY 1,4
+
+# ENSUITE 
+SELECT *
+FROM v_derversionvm
+
+
+# Question 5
+DROP VIEW IF EXISTS v_cetteanee;
+
+CREATE VIEW v_cetteanee AS 
+    SELECT * 
+    FROM v_derversionvm v
+    WHERE TO_CHAR(v.dateversion, 'yyyy') = TO_CHAR(CURRENT_DATE, 'yyyy')
+
+# OU 
+WHERE DATE_PART('year', v.dateversion) = DATE_PART('year', CURRENT_DATE)
+
+
+# Question 6
+SELECT vm.idvm, v.numversion, COUNT(idlogiciel) as "nb logiciels",
+CASE
+	WHEN COUNT(idlogiciel)=0 THEN 'OS nu'
+	WHEN COUNT(idlogiciel) BETWEEN 1 AND 2 THEN 'Peu'
+	WHEN COUNT(idlogiciel) BETWEEN 3 AND 5 THEN 'Normal'
+	ELSE 'Beaucoup de travail !'
+END AS Qualification
+FROM vm
+	LEFT JOIN versionvm v ON vm.idvm=v.idvm
+	LEFT JOIN installation i ON v.idvm=i.idvm AND v.numversion=i.numversion
+GROUP BY vm.idvm, v.numversion
+ORDER BY 3 desc, 1, 2
+
+# Question 7
+
+DROP TABLE IF EXISTS INFOSVM;
+
+CREATE TABLE INFOSVM AS
+
+SELECT vm.idvm AS "idvm", vm.nomvm as "nomvm", vm.description as "description", vm.tailledd "tailledd", vm.memoireram "memoireram", 
+        vm.typestockage, "typestockage", dept.nomdepartement, d.nomdemandeur, d.prenomdemandeur
+FROM VM vm
+    JOIN DEPARTEMENT dept ON vm.iddepartement = dept.iddepartement
+    JOIN DEMANDEUR d ON vm.iddemandeur = d.iddemandeur
+
+
+# Question 8
+
+# COUNT
+SELECT l.idlogiciel, l.nomlogiciel
+FROM logiciel l
+JOIN COMPATIBILITE c ON l.idlogiciel = c.idlogiciel
+GROUP BY l.idlogiciel
+HAVING COUNT(DISTINCT idos) =   (
+                                    SELECT COUNT(*) 
+                                    FROM OS
+                                )
+
+# NOT EXISTS
+
+SELECT l.idlogiciel, l.nomlogiciel
+FROM LOGICIEL L
+WHERE NOT EXISTS    (
+                        SELECT 'X'
+                        FROM OS os
+                        WHERE NOT EXISTS    (
+                                                SELECT 'X'
+                                                FROM COMPATIBILITE c
+                                                WHERE l.idlogiciel = c.idlogiciel
+                                                    AND os.idos = c.idos
+                                            )
+                    )
+
+
+# Question 9
+
+DROP VIEW IF EXISTS v_vmpardept;
+
+CREATE VIEW v_vmpardept AS
+    SELECT d.nomufr, d.nomdepartement, COUNT(vm.idvm)
+    FROM DEPARTEMENT d 
+        JOIN VM vm ON d.iddepartement = vm.iddepartement
+    GROUP BY d.nomufr, d.nomdepartement
+
+# Question 10
+
+SELECT vm.idvm, vm.nomvm
+FROM VM vm
+	JOIN VERSIONVM v ON vm.idvm = v.idvm
+WHERE (CURRENT_DATE - interval '36 months') <= v.dateversion
+GROUP BY vm.idvm, vm.nomvm
+HAVING COUNT(v.numversion) >= 2
+ORDER BY 1
+
+# Question 11
+
+SELECT l.idlogiciel, l.nomlogiciel
+FROM logiciel l 
+    JOIN VERSIONVM v
+WHERE (CURRENT_DATE - interval '10 years') >= v.dateversion
+
+
+SELECT l.idlogiciel, l.nomlogiciel
+FROM LOGICIEL l
+WHERE l.idlogiciel NOT IN 
+                            (
+                                SELECT i.idlogiciel
+                                FROM installation i 
+                                    JOIN VERSIONVM v ON i.idvm = v.idvm
+                                        AND i.numversion = v.numversion
+                                WHERE (CURRENT_DATE - interval '10 years') <= v.dateversion
+                                ORDER BY 1
+                            )
+
+
+# Question 12
+
+SELECT idlogiciel, nomlogiciel  
+FROM logiciel l 
+WHERE NOT EXISTS    ( 
+                        SELECT 'X'  
+                        FROM OS 
+                        WHERE NOT EXISTS    ( 
+                                                SELECT 'X' 
+                                                FROM compatibilite c 
+                                                WHERE c.idlogiciel=l.idlogiciel 
+                                                    AND c.idos=os.idos 
+                                            ) 
+                        AND idos IN         ( 
+                                                SELECT idos 
+                                                FROM os 
+                                                	JOIN typeos t ON os.idtypeos=t.idtypeos 
+                                                WHERE t.typeos='Mac OS/X' 
+                                            )    
+                    ); 
+
+# OU
+
+SELECT idlogiciel, nomlogiciel  
+FROM logiciel l 
+WHERE NOT EXISTS    ( 
+                        SELECT 'X'  
+                        FROM OS 
+                            JOIN typeos t ON os.idtypeos=t.idtypeos 
+                        WHERE t.typeos='Mac OS/X' 
+                            AND NOT EXISTS ( 
+                                                SELECT 'X' 
+                                                FROM compatibilite c 
+                                                WHERE c.idlogiciel=l.idlogiciel 
+                                                    AND c.idos=os.idos 
+                                            ) 
+                    ); 
+
+=========================================================================================

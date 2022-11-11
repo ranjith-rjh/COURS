@@ -1,0 +1,60 @@
+=====================================================================
+TD4 Requetes
+=====================================================================
+
+# Question 1
+
+SELECT t.typeos, os.nomos, COUNT(vm.idvm) AS "nb VMs"
+FROM vm
+  JOIN os ON vm.idos=os.idos
+  JOIN typeos t ON os.idtypeos=t.idtypeos
+GROUP BY ROLLUP(t.typeos, os.nomos)
+ORDER BY t.typeos, os.nomos
+
+SELECT COALESCE(t.typeos, 'TOUS TYPES D''OS'), COALESCE(os.nomos, 'TOUS OS'), COUNT(vm.idvm) AS "nb VMs"
+FROM vm
+  JOIN os ON vm.idos=os.idos
+  JOIN typeos t ON os.idtypeos=t.idtypeos
+GROUP BY ROLLUP(t.typeos, os.nomos)
+ORDER BY t.typeos, os.nomos
+
+# Question 2
+
+Insert into DEPARTEMENT (IDDEPARTEMENT, NOMDEPARTEMENT, NOMUFR) values (7, 'TC', 'IUT Annecy');
+Insert into DEPARTEMENT (IDDEPARTEMENT, NOMDEPARTEMENT, NOMUFR) values (8, 'GEA', 'IUT Annecy');
+
+SELECT COALESCE(d.nomufr, 'TOUTES UFR'), COALESCE(d.nomdepartement, 'TOUS DEPARTEMENTS'), COUNT(vm.idvm) AS "nb VMs"
+FROM vm
+	RIGHT JOIN departement d on vm.iddepartement=d.iddepartement
+GROUP BY ROLLUP(d.nomufr, d.nomdepartement)
+ORDER BY nomufr, nomdepartement;
+
+# Question 3
+
+CREATE TEMPORARY TABLE SyntheseInstallations (
+    idvm NUMERIC(4),
+    nomvm VARCHAR(50),
+    numversion NUMERIC(2),
+    nbinstallationsversion NUMERIC(10),
+    nbinstallationsvm NUMERIC(10)
+);
+
+INSERT INTO SyntheseInstallations(idvm, nomvm, numversion, nbinstallationsversion)
+SELECT vm.idvm, vm.nomvm, v.numversion, COUNT(*)
+FROM installation i
+    JOIN versionvm v ON i.idvm=v.idvm AND i.numversion=v.numversion
+    JOIN vm ON v.idvm=vm.idvm
+GROUP BY vm.idvm, vm.nomvm, v.numversion;
+
+SELECT * FROM SyntheseInstallations ORDER BY idvm;
+
+
+UPDATE SyntheseInstallations SET nbinstallationsvm=(
+    SELECT COUNT(*) FROM installation WHERE installation.idvm= SyntheseInstallations.idvm
+);
+
+SELECT * FROM SyntheseInstallations ORDER BY idvm;
+
+DROP TABLE SyntheseInstallations;
+
+=====================================================================

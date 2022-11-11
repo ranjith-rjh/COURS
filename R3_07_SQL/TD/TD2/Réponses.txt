@@ -1,0 +1,40 @@
+============================================================================================================
+TD2 SQL : Réponses au question
+============================================================================================================
+
+# Question 1 : 
+# A quoi sert la vue système table_constraints ? Expliquer son contenu.
+
+Elle permet d'afficher la liste des contraintes dans toute la base, avec les noms des tables et les champs
+
+La clause avec public, affiche toutes les tables qu'on a crée aves les requêtes
+
+------------------------------------------------------------------------------------------------------------
+
+# Question 2 : 
+# Expliquer la différence entre les vues système constraint_column_usage et constraint_table_usage :
+
+# constraint_column_usage : 
+Affiche toutes les colonnes qui ont des contraintes : pk, uk, fk, ck
+
+# constraint_table_usage
+Affiche toutes les colonnes qui ont des contraintes : pk, uk, fk,
+Il n'y a pas de ck
+
+------------------------------------------------------------------------------------------------------------
+
+# Question 3 :
+# A quoi sert la vue système check_constraints ? Expliquer son contenu.
+
+Elle permet de savoir si la clause a ete respectee ou pas 
+Il y a une colonne "check clause" qui donne le retour
+
+------------------------------------------------------------------------------------------------------------
+
+# Question 4 :
+# A quoi sert la vue système key_column_usage ? Expliquer son contenu.
+
+Je sais pas ...
+
+
+============================================================================================================
